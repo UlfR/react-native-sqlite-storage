@@ -96,9 +96,7 @@ public class SQLitePlugin extends ReactContextBaseJavaModule {
     public void attach(ReadableMap args, Callback success, Callback error) {
         String actionAsString = "attach";
         try {
-            JSONArray params = new JSONArray();
-            params.put(SQLitePluginConverter.reactToJSON(args));
-            this.execute(actionAsString, params, new CallbackContext(success, error));
+            error.invoke("no attach");
         } catch (Exception ex){
             error.invoke("Unexpected error"+ex.getMessage());
         }
@@ -214,14 +212,6 @@ public class SQLitePlugin extends ReactContextBaseJavaModule {
                 dbname = o.getString("path");
                 // put request in the q to close the db
                 this.closeDatabase(dbname, cbc);
-                break;
-
-            case attach:
-                o = args.getJSONObject(0);
-                dbname = o.getString("path");
-
-                // attach database
-                this.attachDatabase(dbname, o.getString("dbName"), o.getString("dbAlias"), cbc);
                 break;
 
             case delete:
@@ -484,46 +474,6 @@ public class SQLitePlugin extends ReactContextBaseJavaModule {
 
             if (mydb != null)
                 mydb.closeDatabaseNow();
-        }
-    }
-
-    /**
-     * Attach a database
-     *
-     * @param dbName - The name of the database file
-     * @param dbNameToAttach - The name of the database file to attach
-     * @param dbAlias - The alias of the attached database
-     * @param cbc - JS callback
-     */
-    private void attachDatabase(String dbName, String dbNameToAttach, String dbAlias, CallbackContext cbc) {
-        SQLiteDatabase currentDb = this.getDatabase(dbName);
-        SQLiteDatabase attachDb = this.getDatabase(dbNameToAttach);
-
-        if (attachDb == null || ! attachDb.isOpen()) {
-            if (cbc != null) cbc.error("Database to attach (" + dbNameToAttach + ") is not open");
-            return;
-        }
-
-        if (currentDb == null || ! currentDb.isOpen()) {
-            if (cbc != null) cbc.error("Database " + dbName + " is not open");
-            return;
-        }
-
-        File dbfile = this.getContext().getDatabasePath(dbNameToAttach);
-        String filePathToAttached = dbfile.getAbsolutePath();
-
-        String stmt = "ATTACH DATABASE '" + filePathToAttached + "' AS " + dbAlias;
-        try {
-            this.executeSqlStatementQuery( currentDb, stmt, new JSONArray(), cbc );
-            // if this previous statement fails, it will throw an exception
-            // otherwise it will never call the success handler because no valid
-            // cursor will be return from rawQuery.
-            // That's why we have to call the success handler here
-            if(cbc != null) cbc.success();
-        }
-        catch(Exception e) {
-            Log.e("attachDatabase", "" + e.getMessage());
-            if(cbc != null) cbc.error("Attach failed");
         }
     }
 
